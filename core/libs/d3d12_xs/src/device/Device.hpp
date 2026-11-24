@@ -74,6 +74,7 @@ public:
     static void CreateUnorderedAccessView(Device* self, void* resource, void* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* description, std::uint64_t destination);
     static void CreateRenderTargetView(Device* self, void* resource, const D3D12_RENDER_TARGET_VIEW_DESC* description, std::uint64_t destination);
     static HRESULT GetDeviceRemovedReason(Device* self);
+    static HRESULT CreateQueryHeap(Device* self, const D3D12_QUERY_HEAP_DESC* description, const Guid& interfaceId, void** heap);
     static LUID GetAdapterLuid(Device* self);
     static HRESULT CreatePlacedResourceLayoutX(Device* self, std::uintptr_t address, const D3D12_RESOURCE_DESC1* description, D3D12_BARRIER_LAYOUT layout, const D3D12_CLEAR_VALUE* clearValue, const Guid& interfaceId, void** resource);
     static HRESULT SetFrameIntervalX(Device* self, void* output, std::uint32_t intervalMicroseconds, std::uint32_t periodicity, std::uint32_t flags);
