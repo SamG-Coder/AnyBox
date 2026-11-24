@@ -1,7 +1,23 @@
 #include <anybox/shader/Requirements.hpp>
 #include <anybox/graphics/container/Dxil.hpp>
+#include <anybox/graphics/container/Native.hpp>
 #include <stdexcept>
 #include <string>
+
+namespace {
+std::optional<std::uint32_t> GetNativeWaveSize(const AnyBox::Graphics::Container::DxilView& program) {
+    using namespace AnyBox::Graphics::Container;
+    std::optional<std::uint32_t> waveSize;
+    for (std::uint32_t index = 0; index < program.GetEmbeddedPartCount(); ++index) {
+        auto entry = program.GetEmbeddedPart(index);
+        if (entry.tag != 13) continue;
+        auto size = FssmView(UnpackXbch(entry.data)).GetWaveSize();
+        if (waveSize && *waveSize != size) throw std::invalid_argument("Xbox native programs use different wave sizes");
+        waveSize = size;
+    }
+    return waveSize;
+}
+}
 
 std::optional<std::uint32_t> AnyBox::Shader::GetComputeWaveSize(std::span<const std::byte> code) {
     using namespace Graphics::Container;
@@ -38,6 +54,7 @@ std::optional<std::uint32_t> AnyBox::Shader::GetComputeWaveSize(std::span<const 
         }
     }
     if (!usesWaveOperations) return std::nullopt;
+    if (!waveSize) waveSize = GetNativeWaveSize(program);
     if (!waveSize) throw std::runtime_error("Xbox compute shader wave size is unspecified");
     return waveSize;
 }

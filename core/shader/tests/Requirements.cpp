@@ -2,6 +2,7 @@
 #include <anybox/graphics/container/View.hpp>
 #include <anybox/ExceptionTest.hpp>
 #include "Fixtures.hpp"
+#include "NativeFixtures.hpp"
 #include <array>
 
 namespace {
@@ -12,6 +13,26 @@ std::vector<std::byte> MakeContainer(std::span<const std::byte> program, bool wa
     std::array<std::byte, 8> features{};
     if (waves) features[1] = std::byte{0x40};
     return BuildDxbc(std::array<Part, 2>{{{0x30494653, features}, {0x4C495844, program}}});
+}
+
+std::vector<std::byte> MakeNativeProgramPart(std::uint32_t firstWaveSize, std::uint32_t secondWaveSize) {
+    auto pack = [](std::uint32_t waveSize) {
+        auto program = MakeComputeProgram();
+        Set(program, 0xD4, waveSize == 32 ? 0x20 : 0);
+        return PackNativeProgram(program);
+    };
+    auto container = MakeNativeContainer(pack(firstWaveSize), pack(secondWaveSize));
+    auto part = DxbcView(container).FindPart(0x4C495844);
+    Require(part.has_value());
+    return {part->data.begin(), part->data.end()};
+}
+
+void CheckNativeWaveSize() {
+    using AnyBox::Shader::GetComputeWaveSize;
+    Require(GetComputeWaveSize(MakeContainer(MakeNativeProgramPart(32, 32), true)) == 32u);
+    Require(GetComputeWaveSize(MakeContainer(MakeNativeProgramPart(64, 64), true)) == 64u);
+    Require(!GetComputeWaveSize(MakeContainer(MakeNativeProgramPart(64, 64), false)));
+    Reject<std::invalid_argument>([] { GetComputeWaveSize(MakeContainer(MakeNativeProgramPart(32, 64), true)); });
 }
 
 void Check() {
@@ -43,5 +64,8 @@ void Check() {
 }
 
 int main() {
-    return AnyBox::Tests::Run(Check);
+    return AnyBox::Tests::Run([] {
+        Check();
+        CheckNativeWaveSize();
+    });
 }
